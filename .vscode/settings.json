@@ -1,0 +1,6 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "lib/twilight-client/Cargo.toml",
+        "Cargo.toml"
+    ]
+}

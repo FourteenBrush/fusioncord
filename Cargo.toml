@@ -1,0 +1,19 @@
+[workspace]
+members = [
+    "fusioncord-core",
+    "fusioncord-ui",
+    "lib/twilight-client",
+]
+
+default-members = [
+    "fusioncord-core",
+]
+
+resolver = "2"
+
+[workspace.dependencies]
+"tokio" = { version = "1.29.1", features = ["full"] }
+"twilight-model" = "0.15.2"
+
+[patch.crates-io]
+twilight-model = { path = "lib/twilight-client" }

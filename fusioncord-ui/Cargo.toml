@@ -1,0 +1,18 @@
+[package]
+name = "fusioncord-ui"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+fusioncord-core = { path = "../fusioncord-core" }
+tokio.workspace = true
+twilight-model.workspace = true
+egui = "0.22.0"
+eframe = { version = "0.22.0", default-features = false, features = [
+    "glow",          # Use the glow rendering backend. Alternative: "wgpu".
+    "default_fonts", # Embed the default egui fonts.
+    "persistence",   # Enable restoring app state when restarting the app.
+] }
+serde = { version = "1", features = ["derive"] }
