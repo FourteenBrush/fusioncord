@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct UnavailableGuild {
     pub id: Id<GuildMarker>,
-    #[serde(default)]
-    pub unavailable: bool,
 }
 
 #[cfg(test)]
@@ -16,23 +14,18 @@ mod tests {
 
     #[test]
     fn unavailable_guild() {
-        let value = UnavailableGuild {
-            id: Id::new(1),
-            unavailable: true,
-        };
+        let value = UnavailableGuild { id: Id::new(1) };
 
         serde_test::assert_tokens(
             &value,
             &[
                 Token::Struct {
                     name: "UnavailableGuild",
-                    len: 2,
+                    len: 1,
                 },
                 Token::Str("id"),
                 Token::NewtypeStruct { name: "Id" },
                 Token::Str("1"),
-                Token::Str("unavailable"),
-                Token::Bool(true),
                 Token::StructEnd,
             ],
         );

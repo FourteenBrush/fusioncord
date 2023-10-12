@@ -1,6 +1,4 @@
-use crate::{
-    gateway::ShardId, guild::UnavailableGuild, user::CurrentUser,
-};
+use crate::{gateway::ShardId, guild::UnavailableGuild, user::CurrentUser};
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -18,26 +16,15 @@ pub struct Ready {
 #[cfg(test)]
 mod tests {
     use super::Ready;
-    use crate::{
-        gateway::ShardId,
-        guild::UnavailableGuild,
-        id::Id,
-        user::CurrentUser,
-    };
+    use crate::{gateway::ShardId, guild::UnavailableGuild, id::Id, user::CurrentUser};
     use serde_test::Token;
 
     #[test]
     #[allow(clippy::too_many_lines)]
     fn ready() {
         let guilds = vec![
-            UnavailableGuild {
-                id: Id::new(1),
-                unavailable: true,
-            },
-            UnavailableGuild {
-                id: Id::new(2),
-                unavailable: true,
-            },
+            UnavailableGuild { id: Id::new(1) },
+            UnavailableGuild { id: Id::new(2) },
         ];
 
         let ready = Ready {

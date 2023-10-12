@@ -1,5 +1,7 @@
 use std::convert::TryFrom;
 
+use crate::guild::UnavailableGuild;
+
 use super::{super::payload::incoming::*, Event, EventConversionError, EventType};
 use serde::{
     de::{Deserialize, DeserializeSeed, Deserializer, Error as DeError, IgnoredAny},

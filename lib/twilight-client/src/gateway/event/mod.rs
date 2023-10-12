@@ -12,7 +12,10 @@ pub use self::{
 };
 
 use super::{payload::incoming::*, CloseFrame};
-use crate::id::{marker::GuildMarker, Id};
+use crate::{
+    guild::UnavailableGuild,
+    id::{marker::GuildMarker, Id},
+};
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
 
@@ -460,6 +463,8 @@ mod tests {
     //! section and the assertion now fails, you will need to remove the box
     //! wrapping the event in the `Event` type and move the assertion to the
     //! "unboxed" section.
+
+    use crate::guild::UnavailableGuild;
 
     use super::{super::payload::incoming::*, Event};
     use static_assertions::const_assert;
