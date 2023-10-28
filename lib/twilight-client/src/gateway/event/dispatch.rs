@@ -439,7 +439,7 @@ impl<'de, 'a> DeserializeSeed<'de> for DispatchEventWithTypeDeserializer<'a> {
             }
             other => {
                 return Err(DeError::custom(format!(
-                    "unknown variant `{other}`, not implemented"
+                    "unknown variant `{other}`, not implemented (in twilight-client)"
                 )))
             } // TODO
               //other => return Err(DeError::unknown_variant(other, &[])),

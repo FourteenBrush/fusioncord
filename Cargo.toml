@@ -2,6 +2,7 @@
 members = [
     "fusioncord-core",
     "fusioncord-ui",
+    "fusioncord-domain",
     "lib/twilight-client",
 ]
 

@@ -1,9 +1,11 @@
 use core::fmt;
 use std::{
+    fs,
     ops::{Deref, DerefMut},
     sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc, mpsc::Sender,
+        atomic::{AtomicBool, AtomicU16, Ordering},
+        mpsc::Sender,
+        Arc,
     },
     time::{Duration, Instant},
 };
@@ -19,7 +21,10 @@ use twilight_model::gateway::{
     CloseCode,
 };
 
-use crate::{connection::{Connection, Message, ReceiveError, SendError}, message::RenderMessage};
+use crate::{
+    connection::{Connection, Message, ReceiveError, SendError},
+    message::RenderMessage,
+};
 
 /// A client state-machine.
 /// State transitions:
@@ -31,7 +36,6 @@ pub struct Client<S: ClientState> {
 }
 
 impl<S: ClientState> Client<S> {
-    #[inline]
     fn with_state<Target: ClientState>(connection: Connection, state: Target) -> Client<Target> {
         Client { connection, state }
     }
@@ -42,12 +46,12 @@ impl<S: ClientState> Client<S> {
             _ => return Err(ClientError::UnexpectedMessageType),
         };
 
-        trace!("got here");
+        // trace!("got here");
         GatewayEventDeserializer::from_json(&json)
             .expect("missing opcode")
             .deserialize(&mut Deserializer::from_str(&json))
             .map_err(|e| {
-                error!("An error occurred while reading a payload: {e:#?}, payload: {json:#}");
+                error!("An error occurred while deserializing a payload: {e:#?}");
                 ClientError::from(e)
             })
     }
@@ -103,7 +107,10 @@ impl Client<WaitingForIdentify> {
 }
 
 impl Client<WaitingForReady> {
-    pub async fn wait_for_ready(mut self, _tx: Sender<RenderMessage>) -> Result<Client<Initialized>, ClientError> {
+    pub async fn wait_for_ready(
+        mut self,
+        _tx: Sender<RenderMessage>,
+    ) -> Result<Client<Initialized>, ClientError> {
         let event = self.deserialize_gateway_event().await?;
 
         if let GatewayEvent::Dispatch(seq, DispatchEvent::Ready(_payload)) = event {
@@ -111,7 +118,7 @@ impl Client<WaitingForReady> {
                 self.connection,
                 Initialized {
                     heartbeat_interval: self.state.heartbeat_interval,
-                    last_heartbeat: Instant::now() - Duration::from_secs(10_100),
+                    last_heartbeat: Instant::now() - Duration::from_secs(10_000),
                     last_heartbeat_acked: true,
                     last_seq: seq,
                     client_specific_payloads: Map::new(),
@@ -119,7 +126,7 @@ impl Client<WaitingForReady> {
                 },
             ));
         }
-        
+
         Err(ClientError::NoReady)
     }
 }
@@ -137,7 +144,7 @@ impl Client<Initialized> {
                     match message.unwrap() {
                         // TODO: don't clone txt
                         Message::Text(txt) => if let Err(e) = self.handle_message(txt.clone()).await {
-                            error!("{e:#?} payload: {:#?}", serde_json::to_value(&txt)?);
+                            error!("{e:#?} payload: {txt:#}");
                         },
                         Message::Close(close_frame) => self.handle_gateway_close(close_frame).await,
                     };
@@ -148,13 +155,17 @@ impl Client<Initialized> {
     }
 
     async fn send_heartbeat(&mut self) -> Result<(), ClientError> {
+        static HEARBEATS_NOT_ACKED: AtomicU16 = AtomicU16::new(0);
         if !self.last_heartbeat_acked {
-            warn!("Last heartbeat was not acknowledged");
+            let old_amount = HEARBEATS_NOT_ACKED.fetch_add(1, Ordering::SeqCst);
+            warn!("Last heartbeat was not acknowledged ({})", old_amount + 1);
             // TODO: docs state we should reconnect
+        } else {
+            HEARBEATS_NOT_ACKED.fetch_min(1, Ordering::SeqCst);
         }
         self.last_heartbeat_acked = false;
 
-        let payload = Heartbeat::new(Some(self.last_seq));
+        let payload = Heartbeat::new(self.last_seq.into());
         self.connection.send(payload).await?;
 
         self.last_heartbeat = Instant::now();
@@ -172,6 +183,12 @@ impl Client<Initialized> {
                 let json = serde_json::from_str(&json).unwrap();
                 self.client_specific_payloads
                     .insert(event_name.to_owned(), json);
+                // unefficient but whatever, Drop impl doesn't work
+                fs::write(
+                    "client_payloads.json",
+                    serde_json::to_string_pretty(&self.client_specific_payloads).unwrap(),
+                )
+                .unwrap();
             }
             e
         })?;
@@ -186,7 +203,7 @@ impl Client<Initialized> {
                 self.handle_dispatch_event(event).await;
                 self.last_seq = seq;
             }
-            _ => warn!("unhandled event {event:?}"),
+            _ => (), //warn!("unhandled event {event:?}"),
         }
 
         Ok(())
@@ -211,7 +228,7 @@ impl Client<Initialized> {
                 // TODO: initialize client state
                 info!("Successfully received the Ready event");
             }
-            _ => warn!("Unimplemented dispatch event"),
+            _ => warn!("Unimplemented dispatch event {:?}", event.kind()),
         }
     }
 }
@@ -234,15 +251,24 @@ pub enum ClientError {
 }
 
 mod private {
-    use super::{Initialized, WaitingForHello, WaitingForIdentify, WaitingForReady};
-
     pub trait Sealed {}
-
-    impl Sealed for WaitingForHello {}
-    impl Sealed for WaitingForIdentify {}
-    impl Sealed for WaitingForReady {}
-    impl Sealed for Initialized {}
 }
+
+macro_rules! state_impl {
+    ($($type:ty),*) => {
+        $(
+            impl private::Sealed for $type {}
+            impl ClientState for $type {}
+        )*
+    };
+}
+
+state_impl!(
+    WaitingForHello,
+    WaitingForIdentify,
+    WaitingForReady,
+    Initialized
+);
 
 pub trait ClientState: private::Sealed + fmt::Debug {}
 
@@ -250,7 +276,6 @@ pub trait ClientState: private::Sealed + fmt::Debug {}
 /// to perform its initial handshake
 #[derive(Debug)]
 pub struct WaitingForHello;
-impl ClientState for WaitingForHello {}
 
 /// Client has received a Hello payload and is now going to
 /// sent a Identify payload
@@ -258,7 +283,6 @@ impl ClientState for WaitingForHello {}
 pub struct WaitingForIdentify {
     heartbeat_interval: Duration,
 }
-impl ClientState for WaitingForIdentify {}
 
 /// Client has sent an Identify payload and is now waiting to
 /// receive a Ready payload
@@ -266,7 +290,6 @@ impl ClientState for WaitingForIdentify {}
 pub struct WaitingForReady {
     heartbeat_interval: Duration,
 }
-impl ClientState for WaitingForReady {}
 
 impl From<WaitingForIdentify> for WaitingForReady {
     fn from(value: WaitingForIdentify) -> Self {
@@ -286,4 +309,3 @@ pub struct Initialized {
     client_specific_payloads: Map<String, Value>,
     interrupted: Arc<AtomicBool>,
 }
-impl ClientState for Initialized {}

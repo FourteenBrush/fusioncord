@@ -132,3 +132,69 @@ payload is an array with session objects:
 # NOTIFICATION_CENTER_ITEM_COMPLETED
 
 - item_enum: integer
+
+# MESSAGE_CREATE
+
+- type: int
+- tts: bool
+- timestamp: timestamp with time zone
+- referenced_message: Message object?:
+    - type: int
+    - tts: bool
+    - timestamp: Timestamp with time zone
+    - pinned: bool
+    - mentions: List<?> (got an empty list)
+    - mention_roles: List<?> (got an empty list)
+    - mention_everyone: bool
+    - id: Snowflake in String form
+    - flags: int
+    - embeds: List<?> (got an empty list)
+    - edited_timestamp: Timestamp with time zone? (got null)
+    - content: String
+    - components: List<?> (got an empty list)
+    - channel_id: Snowflake in String form
+    - author: User object?: (documentated already)
+        - username
+        - public_flags
+        - id
+        - global_name
+        - discriminator
+        - avatar_decoration_data
+        - avatar
+- pinned: bool
+- nonce: Snowflake in String form? (got "1162808972239962112")
+- mentions: List<?>:
+    - username: String
+    - member: Member object? (see below)
+- mention_roles: List<?> (got an empty list)
+- mention_everyone: bool
+- member: Member object?
+    - roles: List<Snowflake>? (got ["740622873567428740"])
+    - premium_since: Timestamp with time zone
+    - pending: bool
+    - nick: unknown (got null, probably String)
+    - mute: bool
+    - joined_at: Timestamp with timezone
+    - flags: int (userflags?)
+    - deaf: bool
+    - communication_disabled_until: unknown (got null, timestamp?)
+    - avatar: unknown (got null, hash in String form?)
+- id: Snowflake in String form
+- flags: int
+- embeds: List<?> (got an empty list)
+- edited_timestamp: Timestamp with time zone? (got null)
+- content: String
+- components: List<?> (got an empty list)
+- channel_id: Snowflake in String form
+- author: User object?
+    - username: String
+    - public_flags: int
+    - id: Snowflake in String form
+    - global_name: String
+    - discriminator: int in String form
+    - avatar_decoration_data: some object:
+        - sku_id: Snowflake in String format
+        - asset: unknown content String
+    - avatar: String
+- attachements: List<?> (got an empty list)
+- guild_id: Snowflake in String format

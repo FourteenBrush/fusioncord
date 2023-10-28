@@ -47,10 +47,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let (tx, rx) = mpsc::channel();
 
     rt.spawn(async move {
-        let mut client = Client::new().await?
-            .wait_for_hello().await?
-            .identify(identify).await?
-            .wait_for_ready(tx).await?;
+        let mut client = Client::new()
+            .await?
+            .wait_for_hello()
+            .await?
+            .identify(identify)
+            .await?
+            .wait_for_ready(tx)
+            .await?;
 
         client.run().await
     });

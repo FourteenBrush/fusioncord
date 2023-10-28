@@ -7,7 +7,7 @@ use tokio_tungstenite::{
     MaybeTlsStream, WebSocketStream,
 };
 
-const GATEWAY_URL: &str = "wss://gateway.discord.gg";
+const GATEWAY_URL: &str = "wss://gateway.discord.gg/?v=10&encoding=json";
 
 #[derive(Debug)]
 pub struct Connection {
@@ -22,20 +22,18 @@ impl Connection {
     }
 
     pub async fn read(&mut self) -> Result<Message, ReceiveError> {
-        let message = self
-            .stream
+        self.stream
             .next()
             .await
             .ok_or(ReceiveError::ConnectionClosed)?
-            .map_err(ReceiveError::from)?;
-
-        Message::from_tungstenite(message).ok_or(ReceiveError::UnexpectedMessageType)
+            .map(Message::from_tungstenite)
+            .map_err(ReceiveError::from)?
+            .ok_or(ReceiveError::UnexpectedMessageType)
     }
 
     pub async fn send<S: Serialize>(&mut self, msg: S) -> Result<(), SendError> {
         let msg = TungsteniteMessage::Text(serde_json::to_string(&msg)?);
-        self.stream.send(msg).await?;
-        Ok(())
+        Ok(self.stream.send(msg).await?)
     }
 }
 
@@ -52,7 +50,7 @@ pub enum ReceiveError {
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
 pub enum SendError {
-    Serializing(#[from] serde_json::Error),
+    Serialisation(#[from] serde_json::Error),
     Transmission(#[from] tungstenite::Error),
 }
 
